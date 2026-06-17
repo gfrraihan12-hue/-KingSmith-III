@@ -4,6 +4,7 @@ Dijalankan otomatis oleh GitHub Actions (lihat .github/workflows/update.yml).
 Membutuhkan yt-dlp (pip install -U yt-dlp).
 """
 
+import os
 import subprocess
 
 CHANNEL_ID = "UCZLZ8Jjx_RN2CXloOmgTHVg"
@@ -14,6 +15,14 @@ LOGO_URL = (
 )
 NUM_VOD = 8          # jumlah video terbaru yang dimasukkan ke playlist
 TIMEOUT = 90         # detik, batas waktu tiap pemanggilan yt-dlp
+COOKIES_FILE = "cookies.txt"
+
+
+def cookie_args():
+    """Sertakan --cookies kalau file cookies.txt ada dan tidak kosong."""
+    if os.path.exists(COOKIES_FILE) and os.path.getsize(COOKIES_FILE) > 0:
+        return ["--cookies", COOKIES_FILE]
+    return []
 
 
 def run(cmd):
@@ -36,7 +45,7 @@ def run(cmd):
 def get_live_url():
     """Cek apakah channel sedang live, kembalikan direct stream URL kalau ada."""
     out = run([
-        "yt-dlp", "-g", "--no-warnings", "-f", "best",
+        "yt-dlp", "-g", "--no-warnings", "-f", "best", *cookie_args(),
         f"https://www.youtube.com/channel/{CHANNEL_ID}/live",
     ])
     first_line = out.split("\n")[0] if out else ""
@@ -47,7 +56,7 @@ def get_recent_video_ids():
     """Ambil daftar (video_id, title) upload terbaru dari channel."""
     out = run([
         "yt-dlp", "--flat-playlist", "--print", "%(id)s|||%(title)s",
-        "--playlist-end", str(NUM_VOD),
+        "--playlist-end", str(NUM_VOD), *cookie_args(),
         f"https://www.youtube.com/channel/{CHANNEL_ID}/videos",
     ])
     videos = []
@@ -61,7 +70,7 @@ def get_recent_video_ids():
 def get_video_stream_url(video_id):
     """Ambil direct playback URL untuk 1 video (akan expire setelah beberapa jam)."""
     out = run([
-        "yt-dlp", "-g", "--no-warnings", "-f", "best",
+        "yt-dlp", "-g", "--no-warnings", "-f", "best", *cookie_args(),
         f"https://www.youtube.com/watch?v={video_id}",
     ])
     first_line = out.split("\n")[0] if out else ""
