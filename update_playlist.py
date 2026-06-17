@@ -21,7 +21,13 @@ def run(cmd):
         result = subprocess.run(
             cmd, capture_output=True, text=True, timeout=TIMEOUT
         )
-        return result.stdout.strip()
+        out = result.stdout.strip()
+        if result.returncode != 0 or not out:
+            stderr_snippet = result.stderr.strip()[-800:]
+            print(f"[debug] cmd: {' '.join(cmd)}")
+            print(f"[debug] returncode: {result.returncode}")
+            print(f"[debug] stderr: {stderr_snippet}")
+        return out
     except Exception as e:
         print(f"[warn] command failed: {cmd} -> {e}")
         return ""
