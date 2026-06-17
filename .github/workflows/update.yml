@@ -23,6 +23,14 @@ jobs:
       - name: Install yt-dlp
         run: pip install -U yt-dlp
 
+      - name: Write cookies file (kalau secret YOUTUBE_COOKIES tersedia)
+        env:
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
+        run: |
+          if [ -n "$YOUTUBE_COOKIES" ]; then
+            echo "$YOUTUBE_COOKIES" > cookies.txt
+          fi
+
       - name: Run update script
         run: python update_playlist.py
 
