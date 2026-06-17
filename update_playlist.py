@@ -21,8 +21,9 @@ COOKIES_FILE = "cookies.txt"
 # (mp4 progresif klasik) -> apapun yang tersedia.
 FORMAT_SELECTOR = "best[protocol*=m3u8]/18/best"
 
-# Banyak format disembunyikan yt-dlp kalau tidak ada PO Token; paksa tampilkan.
-EXTRA_ARGS = ["--extractor-args", "youtube:formats=missing_pot"]
+# Paksa pakai client "web" (paling cocok dengan cookies browser) dan
+# tampilkan format yang biasanya disembunyikan kalau tidak ada PO Token.
+EXTRA_ARGS = ["--extractor-args", "youtube:player_client=web;formats=missing_pot"]
 
 
 def cookie_args():
@@ -30,6 +31,22 @@ def cookie_args():
     if os.path.exists(COOKIES_FILE) and os.path.getsize(COOKIES_FILE) > 0:
         return ["--cookies", COOKIES_FILE]
     return []
+
+
+def check_cookies_file():
+    """Diagnostik: pastikan cookies.txt benar-benar ada isinya (tanpa print isinya)."""
+    if not os.path.exists(COOKIES_FILE):
+        print("[diag] cookies.txt TIDAK DITEMUKAN. Secret YOUTUBE_COOKIES kosong/belum diset.")
+        return
+    size = os.path.getsize(COOKIES_FILE)
+    with open(COOKIES_FILE, "r", encoding="utf-8", errors="ignore") as f:
+        lines = f.readlines()
+    cookie_lines = [l for l in lines if l.strip() and not l.startswith("#")]
+    print(f"[diag] cookies.txt ditemukan: {size} bytes, {len(lines)} baris total, "
+          f"{len(cookie_lines)} baris cookie aktual.")
+    if lines and not lines[0].startswith("# Netscape") and not lines[0].startswith("# HTTP"):
+        print("[diag] PERINGATAN: baris pertama bukan header Netscape cookie file. "
+              "Format file mungkin salah (bukan hasil export 'Get cookies.txt LOCALLY').")
 
 
 def run(cmd):
@@ -110,6 +127,7 @@ def get_video_stream_url(video_id):
 
 
 def build_playlist():
+    check_cookies_file()
     lines = ["#EXTM3U"]
 
     live_url = get_live_url()
