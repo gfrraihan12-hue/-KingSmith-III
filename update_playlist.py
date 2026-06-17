@@ -75,6 +75,26 @@ def get_recent_video_ids():
     return videos
 
 
+_DEBUGGED_FORMATS = False
+
+
+def debug_list_formats(video_id):
+    """Sekali saja: tampilkan daftar format asli yang tersedia untuk diagnosa."""
+    global _DEBUGGED_FORMATS
+    if _DEBUGGED_FORMATS:
+        return
+    _DEBUGGED_FORMATS = True
+    result = subprocess.run(
+        ["yt-dlp", "-F", *EXTRA_ARGS, *cookie_args(),
+         f"https://www.youtube.com/watch?v={video_id}"],
+        capture_output=True, text=True, timeout=TIMEOUT
+    )
+    print(f"[formats-debug] stdout for {video_id}:")
+    print(result.stdout[-3000:])
+    print(f"[formats-debug] stderr for {video_id}:")
+    print(result.stderr[-1000:])
+
+
 def get_video_stream_url(video_id):
     """Ambil direct playback URL untuk 1 video (akan expire setelah beberapa jam)."""
     out = run([
@@ -83,7 +103,10 @@ def get_video_stream_url(video_id):
         f"https://www.youtube.com/watch?v={video_id}",
     ])
     first_line = out.split("\n")[0] if out else ""
-    return first_line if first_line.startswith("http") else None
+    if not first_line.startswith("http"):
+        debug_list_formats(video_id)
+        return None
+    return first_line
 
 
 def build_playlist():
