@@ -20,8 +20,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install yt-dlp
-        run: pip install -U yt-dlp
+      - name: Install Deno (JS runtime untuk solve challenge YouTube)
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install yt-dlp (dengan paket EJS challenge solver)
+        run: pip install -U "yt-dlp[default]"
 
       - name: Write cookies file (kalau secret YOUTUBE_COOKIES tersedia)
         env:
