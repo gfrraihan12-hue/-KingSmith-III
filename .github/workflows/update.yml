@@ -1,9 +1,9 @@
-name: Update YouTube Playlist
+name: Update Playlist
 
 on:
   schedule:
-    - cron: '*/30 * * * *'   # tiap 30 menit
-  workflow_dispatch:          # bisa dipicu manual dari tab Actions
+    - cron: '0 3 * * *'   # tiap hari jam 03:00 UTC (10:00 WIB)
+  workflow_dispatch:        # bisa dipicu manual dari tab Actions
 
 permissions:
   contents: write
@@ -19,22 +19,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Install Deno (JS runtime untuk solve challenge YouTube)
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Install yt-dlp (dengan paket EJS challenge solver)
-        run: pip install -U "yt-dlp[default]"
-
-      - name: Write cookies file (kalau secret YOUTUBE_COOKIES tersedia)
-        env:
-          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
-        run: |
-          if [ -n "$YOUTUBE_COOKIES" ]; then
-            echo "$YOUTUBE_COOKIES" > cookies.txt
-          fi
 
       - name: Run update script
         run: python update_playlist.py
