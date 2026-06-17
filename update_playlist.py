@@ -1,164 +1,82 @@
 """
-Auto-generate playlist.m3u8 untuk channel YouTube Kaela Kovalskia.
+Gabungkan beberapa playlist resmi dari iptv-org/iptv jadi satu playlist.m3u8
+pribadi, dikategorikan sesuai pilihan kategori kamu.
+Tidak butuh yt-dlp/cookies sama sekali -- semua sumber di sini adalah
+playlist publik resmi, jadi tidak ada masalah bot-block.
 Dijalankan otomatis oleh GitHub Actions (lihat .github/workflows/update.yml).
-Membutuhkan yt-dlp (pip install -U yt-dlp).
 """
 
-import os
-import subprocess
+import re
+import urllib.request
 
-CHANNEL_ID = "UCZLZ8Jjx_RN2CXloOmgTHVg"
-CHANNEL_NAME = "Kaela Kovalskia"
-LOGO_URL = (
-    "https://yt3.googleusercontent.com/w97I-49S9Z9O-KvsLgBv2YwW-lq8_Y86BWh43-"
-    "YvF8r_v4n_8tX0vW8V3pP4V9L68Q_G_5V6=s800-c-k-c0x00ffffff-no-rj"
-)
-NUM_VOD = 8          # jumlah video terbaru yang dimasukkan ke playlist
-TIMEOUT = 90         # detik, batas waktu tiap pemanggilan yt-dlp
-COOKIES_FILE = "cookies.txt"
+TIMEOUT = 30
 
-# Prioritas: manifest HLS (m3u8, paling cocok buat OTT Navigator) -> itag 18
-# (mp4 progresif klasik) -> apapun yang tersedia.
-FORMAT_SELECTOR = "best[protocol*=m3u8]/18/best"
-
-# Paksa pakai client "web" (paling cocok dengan cookies browser) dan
-# tampilkan format yang biasanya disembunyikan kalau tidak ada PO Token.
-EXTRA_ARGS = ["--extractor-args", "youtube:player_client=web;formats=missing_pot"]
+# (url sumber, label kategori yang mau ditampilkan di OTT Navigator)
+SOURCES = [
+    ("https://iptv-org.github.io/iptv/countries/id.m3u", "Indonesia"),
+    ("https://iptv-org.github.io/iptv/categories/animation.m3u", "Anime & Animasi"),
+    ("https://iptv-org.github.io/iptv/categories/music.m3u", "Musik"),
+    ("https://iptv-org.github.io/iptv/categories/news.m3u", "Berita"),
+    ("https://iptv-org.github.io/iptv/categories/movies.m3u", "Film"),
+    ("https://iptv-org.github.io/iptv/categories/sports.m3u", "Olahraga"),
+    ("https://iptv-org.github.io/iptv/categories/documentary.m3u", "Knowledge"),
+    ("https://iptv-org.github.io/iptv/categories/education.m3u", "Knowledge"),
+]
 
 
-def cookie_args():
-    """Sertakan --cookies kalau file cookies.txt ada dan tidak kosong."""
-    if os.path.exists(COOKIES_FILE) and os.path.getsize(COOKIES_FILE) > 0:
-        return ["--cookies", COOKIES_FILE]
-    return []
-
-
-def check_cookies_file():
-    """Diagnostik: pastikan cookies.txt benar-benar ada isinya (tanpa print isinya)."""
-    if not os.path.exists(COOKIES_FILE):
-        print("[diag] cookies.txt TIDAK DITEMUKAN. Secret YOUTUBE_COOKIES kosong/belum diset.")
-        return
-    size = os.path.getsize(COOKIES_FILE)
-    with open(COOKIES_FILE, "r", encoding="utf-8", errors="ignore") as f:
-        lines = f.readlines()
-    cookie_lines = [l for l in lines if l.strip() and not l.startswith("#")]
-    print(f"[diag] cookies.txt ditemukan: {size} bytes, {len(lines)} baris total, "
-          f"{len(cookie_lines)} baris cookie aktual.")
-    if lines and not lines[0].startswith("# Netscape") and not lines[0].startswith("# HTTP"):
-        print("[diag] PERINGATAN: baris pertama bukan header Netscape cookie file. "
-              "Format file mungkin salah (bukan hasil export 'Get cookies.txt LOCALLY').")
-
-
-def run(cmd):
+def fetch(url):
     try:
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=TIMEOUT
-        )
-        out = result.stdout.strip()
-        if result.returncode != 0 or not out:
-            stderr_snippet = result.stderr.strip()[-800:]
-            print(f"[debug] cmd: {' '.join(cmd)}")
-            print(f"[debug] returncode: {result.returncode}")
-            print(f"[debug] stderr: {stderr_snippet}")
-        return out
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+            return resp.read().decode("utf-8", errors="ignore")
     except Exception as e:
-        print(f"[warn] command failed: {cmd} -> {e}")
+        print(f"[warn] gagal ambil {url} -> {e}")
         return ""
 
 
-def get_live_url():
-    """Cek apakah channel sedang live, kembalikan direct stream URL kalau ada."""
-    out = run([
-        "yt-dlp", "-g", "--no-warnings", "-f", FORMAT_SELECTOR,
-        *EXTRA_ARGS, *cookie_args(),
-        f"https://www.youtube.com/channel/{CHANNEL_ID}/live",
-    ])
-    first_line = out.split("\n")[0] if out else ""
-    return first_line if first_line.startswith("http") else None
+def retag_group(extinf_line, new_group):
+    """Ganti (atau tambahkan) atribut group-title pada baris #EXTINF."""
+    if 'group-title="' in extinf_line:
+        return re.sub(r'group-title="[^"]*"', f'group-title="{new_group}"', extinf_line)
+    return extinf_line.replace("#EXTINF:", f'#EXTINF: group-title="{new_group}"', 1)
 
 
-def get_recent_video_ids():
-    """Ambil daftar (video_id, title) upload terbaru dari channel."""
-    out = run([
-        "yt-dlp", "--flat-playlist", "--print", "%(id)s|||%(title)s",
-        "--playlist-end", str(NUM_VOD), *EXTRA_ARGS, *cookie_args(),
-        f"https://www.youtube.com/channel/{CHANNEL_ID}/videos",
-    ])
-    videos = []
-    for line in out.split("\n"):
-        if "|||" in line:
-            vid, title = line.split("|||", 1)
-            videos.append((vid.strip(), title.strip()))
-    return videos
-
-
-_DEBUGGED_FORMATS = False
-
-
-def debug_list_formats(video_id):
-    """Sekali saja: tampilkan daftar format asli yang tersedia untuk diagnosa."""
-    global _DEBUGGED_FORMATS
-    if _DEBUGGED_FORMATS:
-        return
-    _DEBUGGED_FORMATS = True
-    result = subprocess.run(
-        ["yt-dlp", "-F", *EXTRA_ARGS, *cookie_args(),
-         f"https://www.youtube.com/watch?v={video_id}"],
-        capture_output=True, text=True, timeout=TIMEOUT
-    )
-    print(f"[formats-debug] stdout for {video_id}:")
-    print(result.stdout[-3000:])
-    print(f"[formats-debug] stderr for {video_id}:")
-    print(result.stderr[-1000:])
-
-
-def get_video_stream_url(video_id):
-    """Ambil direct playback URL untuk 1 video (akan expire setelah beberapa jam)."""
-    out = run([
-        "yt-dlp", "-g", "--no-warnings", "-f", FORMAT_SELECTOR,
-        *EXTRA_ARGS, *cookie_args(),
-        f"https://www.youtube.com/watch?v={video_id}",
-    ])
-    first_line = out.split("\n")[0] if out else ""
-    if not first_line.startswith("http"):
-        debug_list_formats(video_id)
-        return None
-    return first_line
+def parse_and_retag(content, group_label):
+    """Parse 1 playlist m3u, kembalikan list baris #EXTINF + URL yang sudah ditag ulang."""
+    out_lines = []
+    lines = content.splitlines()
+    i = 0
+    count = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        if line.startswith("#EXTINF"):
+            extinf = retag_group(line, group_label)
+            j = i + 1
+            while j < len(lines) and not lines[j].strip():
+                j += 1
+            if j < len(lines) and lines[j].strip().startswith("http"):
+                out_lines.append(extinf)
+                out_lines.append(lines[j].strip())
+                count += 1
+                i = j + 1
+                continue
+        i += 1
+    print(f"[info] {group_label}: {count} channel diambil.")
+    return out_lines
 
 
 def build_playlist():
-    check_cookies_file()
-    lines = ["#EXTM3U"]
-
-    live_url = get_live_url()
-    if live_url:
-        lines.append(
-            f'#EXTINF:-1 tvg-id="Kaela.Live" tvg-logo="{LOGO_URL}" '
-            f'group-title="[LIVE] {CHANNEL_NAME}",[LIVE] {CHANNEL_NAME}'
-        )
-        lines.append(live_url)
-        print("[info] Channel sedang LIVE, entry ditambahkan.")
-    else:
-        print("[info] Channel tidak sedang live, entry LIVE dilewati.")
-
-    videos = get_recent_video_ids()
-    print(f"[info] Ditemukan {len(videos)} video terbaru.")
-    added = 0
-    for vid, title in videos:
-        stream_url = get_video_stream_url(vid)
-        if not stream_url:
-            print(f"[warn] gagal ambil stream untuk video {vid}, skip.")
+    all_lines = ["#EXTM3U"]
+    total = 0
+    for url, label in SOURCES:
+        content = fetch(url)
+        if not content:
             continue
-        safe_title = title.replace(",", " ").replace('"', "'")
-        lines.append(
-            f'#EXTINF:-1 tvg-id="Kaela.{vid}" tvg-logo="{LOGO_URL}" '
-            f'group-title="[VOD] {CHANNEL_NAME} Videos",{safe_title}'
-        )
-        lines.append(stream_url)
-        added += 1
-
-    print(f"[info] {added} video VOD ditambahkan ke playlist.")
-    return "\n".join(lines) + "\n"
+        entries = parse_and_retag(content, label)
+        all_lines.extend(entries)
+        total += len(entries) // 2
+    print(f"[info] Total {total} channel digabung dari {len(SOURCES)} sumber.")
+    return "\n".join(all_lines) + "\n"
 
 
 if __name__ == "__main__":
