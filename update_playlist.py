@@ -6,7 +6,7 @@ Membutuhkan yt-dlp (pip install -U yt-dlp).
 
 import subprocess
 
-CHANNEL_ID = "UC1DCedgka5rK0v-H6_v33HQ"
+CHANNEL_ID = "UCZLZ8Jjx_RN2CXloOmgTHVg"
 CHANNEL_NAME = "Kaela Kovalskia"
 LOGO_URL = (
     "https://yt3.googleusercontent.com/w97I-49S9Z9O-KvsLgBv2YwW-lq8_Y86BWh43-"
