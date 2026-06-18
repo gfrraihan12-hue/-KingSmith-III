@@ -1,27 +1,20 @@
 """
-Gabungkan beberapa playlist resmi dari iptv-org/iptv jadi satu playlist.m3u8
-pribadi, dikategorikan sesuai pilihan kategori kamu.
-Tidak butuh yt-dlp/cookies sama sekali -- semua sumber di sini adalah
-playlist publik resmi, jadi tidak ada masalah bot-block.
-Dijalankan otomatis oleh GitHub Actions (lihat .github/workflows/update.yml).
+Bangun playlist.m3u8 pribadi dari 2 sumber:
+
+1. sources.csv          -> kategori "borongan" dari playlist publik (iptv-org dkk)
+2. channels_custom.csv  -> channel satuan yang kamu tambah/hapus manual
+
+PENTING: untuk nambah/hapus channel atau kategori, edit sources.csv atau
+channels_custom.csv langsung di GitHub. File .py ini tidak perlu disentuh lagi.
 """
 
+import csv
 import re
 import urllib.request
 
 TIMEOUT = 30
-
-# (url sumber, label kategori yang mau ditampilkan di OTT Navigator)
-SOURCES = [
-    ("https://iptv-org.github.io/iptv/countries/id.m3u", "Indonesia"),
-    ("https://iptv-org.github.io/iptv/categories/animation.m3u", "Anime & Animasi"),
-    ("https://iptv-org.github.io/iptv/categories/music.m3u", "Musik"),
-    ("https://iptv-org.github.io/iptv/categories/news.m3u", "Berita"),
-    ("https://iptv-org.github.io/iptv/categories/movies.m3u", "Film"),
-    ("https://iptv-org.github.io/iptv/categories/sports.m3u", "Olahraga"),
-    ("https://iptv-org.github.io/iptv/categories/documentary.m3u", "Knowledge"),
-    ("https://iptv-org.github.io/iptv/categories/education.m3u", "Knowledge"),
-]
+SOURCES_FILE = "sources.csv"
+CUSTOM_FILE = "channels_custom.csv"
 
 
 def fetch(url):
@@ -42,7 +35,7 @@ def retag_group(extinf_line, new_group):
 
 
 def parse_and_retag(content, group_label):
-    """Parse 1 playlist m3u, kembalikan list baris #EXTINF + URL yang sudah ditag ulang."""
+    """Parse 1 playlist m3u publik, retag group-title sesuai label di sources.csv."""
     out_lines = []
     lines = content.splitlines()
     i = 0
@@ -61,21 +54,63 @@ def parse_and_retag(content, group_label):
                 i = j + 1
                 continue
         i += 1
-    print(f"[info] {group_label}: {count} channel diambil.")
+    print(f"[info] {group_label}: {count} channel diambil dari sumber borongan.")
     return out_lines
+
+
+def load_sources():
+    """Baca sources.csv -> list (url, label_kategori)."""
+    sources = []
+    try:
+        with open(SOURCES_FILE, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                label = (row.get("label") or "").strip()
+                url = (row.get("url") or "").strip()
+                if label and url:
+                    sources.append((url, label))
+    except FileNotFoundError:
+        print(f"[warn] {SOURCES_FILE} tidak ditemukan, dilewati.")
+    return sources
+
+
+def load_custom_channels():
+    """Baca channels_custom.csv -> baris #EXTINF + URL siap pakai."""
+    lines = []
+    count = 0
+    try:
+        with open(CUSTOM_FILE, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                name = (row.get("name") or "").strip()
+                url = (row.get("url") or "").strip()
+                category = (row.get("category") or "Lainnya").strip()
+                logo = (row.get("logo") or "").strip()
+                if not name or not url or not url.startswith("http"):
+                    continue
+                lines.append(
+                    f'#EXTINF:-1 tvg-logo="{logo}" group-title="{category}",{name}'
+                )
+                lines.append(url)
+                count += 1
+    except FileNotFoundError:
+        print(f"[warn] {CUSTOM_FILE} tidak ditemukan, dilewati.")
+    print(f"[info] Channel custom: {count} channel dimuat dari channels_custom.csv.")
+    return lines
 
 
 def build_playlist():
     all_lines = ["#EXTM3U"]
-    total = 0
-    for url, label in SOURCES:
+
+    for url, label in load_sources():
         content = fetch(url)
-        if not content:
-            continue
-        entries = parse_and_retag(content, label)
-        all_lines.extend(entries)
-        total += len(entries) // 2
-    print(f"[info] Total {total} channel digabung dari {len(SOURCES)} sumber.")
+        if content:
+            all_lines.extend(parse_and_retag(content, label))
+
+    all_lines.extend(load_custom_channels())
+
+    total = (len(all_lines) - 1) // 2
+    print(f"[info] Total {total} channel digabung.")
     return "\n".join(all_lines) + "\n"
 
 
