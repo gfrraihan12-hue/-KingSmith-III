@@ -6161,3 +6161,5 @@ http://retc.educom.ru/mosobrtv/tv1/index.m3u8
 http://223.110.245.151/ott.js.chinamobile.com/PLTV/3/224/3221225923/index.m3u8
 #EXTINF:-1 tvg-id="ChuzhouScienceEducationChannel.cn@SD" tvg-logo="https://i.imgur.com/9JfZJRv.png" group-title="Knowledge",滁州科教 (450p)
 http://183.167.193.45:1935/live/cztvkj/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://example.com/logo.png" group-title="Favorit",Contoh Channel
+https://example.com/stream.m3u8
