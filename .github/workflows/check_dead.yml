@@ -20,10 +20,21 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Run channel checker
+      - name: Cek channel mati & pindah ke Dead Channels
         run: python check_channels.py
 
-      - name: Upload hasil sebagai Artifact
+      - name: Update playlist.m3u8
+        run: python update_playlist.py
+
+      - name: Commit & push perubahan
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add channels_static.m3u8 playlist.m3u8
+          git diff --staged --quiet || git commit -m "Auto: pindah channel mati ke Dead Channels $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push
+
+      - name: Upload laporan sebagai Artifact
         uses: actions/upload-artifact@v4
         with:
           name: channel-check-results
