@@ -101,7 +101,9 @@ def load_custom_channels():
 
 
 def load_static_channels():
-    """Baca channels_static.m3u8 -> baris #EXTINF + URL apa adanya (tanpa retag)."""
+    """Baca channels_static.m3u8 -> baris #EXTINF (+ #KODIPROP dkk) + URL apa adanya.
+    Mendukung format dengan baris tambahan (mis. #KODIPROP untuk header/User-Agent)
+    di antara #EXTINF dan URL stream-nya."""
     try:
         with open(STATIC_FILE, encoding="utf-8") as f:
             content = f.read()
@@ -111,27 +113,61 @@ def load_static_channels():
 
     out_lines = []
     lines = content.splitlines()
+    n = len(lines)
     i = 0
     count = 0
-    while i < len(lines):
+    skipped = 0
+    while i < n:
         line = lines[i].strip()
         if line.startswith("#EXTINF"):
+            block = [lines[i]]
             j = i + 1
-            while j < len(lines) and not lines[j].strip():
+            found_url = False
+            while j < n:
+                cur = lines[j].strip()
+                if cur.startswith("#EXTINF"):
+                    break  # entry sebelumnya rusak (tidak ada URL), berhenti di sini
+                if not cur:
+                    j += 1
+                    continue
+                block.append(lines[j])
+                if cur.startswith("http"):
+                    found_url = True
+                    j += 1
+                    break
                 j += 1
-            if j < len(lines) and lines[j].strip().startswith("http"):
-                out_lines.append(line)
-                out_lines.append(lines[j].strip())
+            if found_url:
+                out_lines.extend(block)
                 count += 1
-                i = j + 1
+                i = j
+                continue
+            else:
+                skipped += 1
+                i = j
                 continue
         i += 1
+    print(f"[info] Channel static (paste manual): {count} channel dimuat dari {STATIC_FILE} "
+          f"({skipped} entri dilewati karena tidak ada URL).")
+    return out_lines
+
+
+def get_static_epg_header():
+    """Ambil atribut url-tvg (EPG) dari baris #EXTM3U pertama di channels_static.m3u8, kalau ada."""
+    try:
+        with open(STATIC_FILE, encoding="utf-8") as f:
+            first_line = f.readline().strip()
+    except FileNotFoundError:
+        return None
+    if first_line.startswith("#EXTM3U") and "url-tvg=" in first_line:
+        return first_line
+    return None
     print(f"[info] Channel static (paste manual): {count} channel dimuat dari {STATIC_FILE}.")
     return out_lines
 
 
 def build_playlist():
-    all_lines = ["#EXTM3U"]
+    header = get_static_epg_header() or "#EXTM3U"
+    all_lines = [header]
 
     for url, label in load_sources():
         content = fetch(url)
