@@ -15,6 +15,7 @@ import urllib.request
 TIMEOUT = 30
 SOURCES_FILE = "sources.csv"
 CUSTOM_FILE = "channels_custom.csv"
+STATIC_FILE = "channels_static.m3u8"
 
 
 def fetch(url):
@@ -99,6 +100,36 @@ def load_custom_channels():
     return lines
 
 
+def load_static_channels():
+    """Baca channels_static.m3u8 -> baris #EXTINF + URL apa adanya (tanpa retag)."""
+    try:
+        with open(STATIC_FILE, encoding="utf-8") as f:
+            content = f.read()
+    except FileNotFoundError:
+        print(f"[warn] {STATIC_FILE} tidak ditemukan, dilewati.")
+        return []
+
+    out_lines = []
+    lines = content.splitlines()
+    i = 0
+    count = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        if line.startswith("#EXTINF"):
+            j = i + 1
+            while j < len(lines) and not lines[j].strip():
+                j += 1
+            if j < len(lines) and lines[j].strip().startswith("http"):
+                out_lines.append(line)
+                out_lines.append(lines[j].strip())
+                count += 1
+                i = j + 1
+                continue
+        i += 1
+    print(f"[info] Channel static (paste manual): {count} channel dimuat dari {STATIC_FILE}.")
+    return out_lines
+
+
 def build_playlist():
     all_lines = ["#EXTM3U"]
 
@@ -108,6 +139,7 @@ def build_playlist():
             all_lines.extend(parse_and_retag(content, label))
 
     all_lines.extend(load_custom_channels())
+    all_lines.extend(load_static_channels())
 
     total = (len(all_lines) - 1) // 2
     print(f"[info] Total {total} channel digabung.")
