@@ -1,6 +1,12 @@
 #EXTM3U url-tvg="https://warningfm.github.io/x1/epg/guide.xml.gz, https://raw.githubusercontent.com/AqFad2811/epg/refs/heads/main/indonesia.xml, https://raw.githubusercontent.com/AqFad2811/epg/refs/heads/main/indonesia.xml, https://tinyurl.com/DrewLive002-epg, https://www.open-epg.com/files/indonesia1.xml, https://epgshare01.online/epgshare01/epg_ripper_ID1.xml.gz, https://epgshare01.online/epgshare01/epg_ripper_ALL_SOURCES1.xml.gz" vod_library="https://raw.githubusercontent.com/DinasKegelapanKotaKonoha/romlah-gunadi/refs/heads/main/romlahvodwleowleowleo.m3u" refresh="3600" billed-msg="I LOVE KAELA KOVALSKIA"
-#EXTINF:-1 tvg-logo="https://example.com/logo.png" group-title="Favorit",Contoh Channel
-https://example.com/stream.m3u8
+#EXTINF:-1 tvg-logo="https://example.com/logo.png" group-title="Favorit",NASA
+https://ntv1.akamaized.net/hls/live/2014075/NASA-NTV1-HLS/master.m3u8
+#EXTINF:-1 tvg-logo="https://bigbradio.net/sites/default/files/logo-transparent-sm.png" group-title="Musik Jepang",Big B Radio JPOP
+http://jpop.bigbradio.net/s
+#EXTINF:-1 tvg-logo="https://bigbradio.net/sites/default/files/logo-transparent-sm.png" group-title="Musik Jepang",Big B Radio Asian POP
+http://apop.bigbradio.net/s
+#EXTINF:-1 tvg-logo="https://www.animeradio.de/favicon.ico" group-title="Musik Jepang",AnimeRadio.de
+https://stream.animeradio.de/animeradio.mp3
 #EXTINF:-1 tvg-name="TVRI Nasional" tvg-id="TVRINasional.id" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/TVRILogo2019.svg/1280px-TVRILogo2019.svg.png" group-title="Indonesia (IPTV)", TVRI Nasional (Maxstream)
 #KODIPROP:inputstream.adaptive.stream_headers=Origin=https://www.indihometv.com
 #KODIPROP:inputstream.adaptive.stream_headers=Referer=https://www.indihometv.com
