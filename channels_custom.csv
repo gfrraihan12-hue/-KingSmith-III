@@ -1,5 +1,5 @@
 category,name,logo,url
-Favorit,NASA,https://example.com/logo.png,https://ntv1.akamaized.net/hls/live/2014075/NASA-NTV1-HLS/master.m3u8
+Favorit, TVRI sport,https://example.com/logo.png,https://ott-balancer.tvri.go.id/live/eds/SportHD/hls/SportHD.m3u8
 Musik Jepang,Big B Radio JPOP,https://bigbradio.net/sites/default/files/logo-transparent-sm.png,http://jpop.bigbradio.net/s
 Musik Jepang,Big B Radio Asian POP,https://bigbradio.net/sites/default/files/logo-transparent-sm.png,http://apop.bigbradio.net/s
 Musik Jepang,AnimeRadio.de,https://www.animeradio.de/favicon.ico,https://stream.animeradio.de/animeradio.mp3
