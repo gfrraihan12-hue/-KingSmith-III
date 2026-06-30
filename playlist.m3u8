@@ -1,8 +1,8 @@
 #EXTM3U url-tvg="https://warningfm.github.io/x1/epg/guide.xml.gz, https://raw.githubusercontent.com/AqFad2811/epg/refs/heads/main/indonesia.xml, https://raw.githubusercontent.com/AqFad2811/epg/refs/heads/main/indonesia.xml, https://tinyurl.com/DrewLive002-epg, https://www.open-epg.com/files/indonesia1.xml, https://epgshare01.online/epgshare01/epg_ripper_ID1.xml.gz, https://epgshare01.online/epgshare01/epg_ripper_ALL_SOURCES1.xml.gz" vod_library="https://raw.githubusercontent.com/DinasKegelapanKotaKonoha/romlah-gunadi/refs/heads/main/romlahvodwleowleowleo.m3u" refresh="3600" billed-msg="I LOVE KAELA KOVALSKIA"
 #EXTINF:-1 tvg-logo="https://i.imgur.com/ZREy4zM.png" group-title="test",Biznet Adventure
 http://livestream.biznetvideo.net/biznet_adventure/smil:adventure.smil/playlist.m3u8
-#EXTINF:-1 tvg-logo="https://bigbradio.net/sites/default/files/logo-transparent-sm.png" group-title="Musik Jepang",Big B Radio JPOP
-http://jpop.bigbradio.net/s
+#EXTINF:-1 tvg-logo="https://www.lyngsat-logo.com/logo/tv/mm/music_on_tv.png" group-title="Musik Jepang",Music ON! TV (エムオン)
+https://stream01.willfonk.com/live_playlist.m3u8?cid=CS325&r=FHD&ccode=JP&m=d0:20:20:04:35:cc&t=0d6938cb3dcf4b79848bc1753a59daf1
 #EXTINF:-1 tvg-logo="https://bigbradio.net/sites/default/files/logo-transparent-sm.png" group-title="Musik Jepang",Big B Radio Asian POP
 http://apop.bigbradio.net/s
 #EXTINF:-1 tvg-logo="https://www.animeradio.de/favicon.ico" group-title="Musik Jepang",AnimeRadio.de
