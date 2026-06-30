@@ -1,5 +1,5 @@
 category,name,logo,url
-Favorit, TVRI sport,https://example.com/logo.png,https://ott-balancer.tvri.go.id/live/eds/SportHD/hls/SportHD.m3u8
+test,TVRI,https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/TVRILogo2019.svg/960px-TVRILogo2019.svg.png,https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8
 Musik Jepang,Big B Radio JPOP,https://bigbradio.net/sites/default/files/logo-transparent-sm.png,http://jpop.bigbradio.net/s
 Musik Jepang,Big B Radio Asian POP,https://bigbradio.net/sites/default/files/logo-transparent-sm.png,http://apop.bigbradio.net/s
 Musik Jepang,AnimeRadio.de,https://www.animeradio.de/favicon.ico,https://stream.animeradio.de/animeradio.mp3
