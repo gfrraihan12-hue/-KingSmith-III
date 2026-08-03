@@ -16,6 +16,7 @@ TIMEOUT = 30
 SOURCES_FILE = "sources.csv"
 CUSTOM_FILE = "channels_custom.csv"
 STATIC_FILE = "channels_static.m3u8"
+RULES_FILE = "category_rules.csv"
 
 
 def fetch(url):
@@ -35,8 +36,37 @@ def retag_group(extinf_line, new_group):
     return extinf_line.replace("#EXTINF:", f'#EXTINF: group-title="{new_group}"', 1)
 
 
-def parse_and_retag(content, group_label):
-    """Parse 1 playlist m3u publik, retag group-title sesuai label di sources.csv.
+def load_category_rules():
+    """Baca category_rules.csv -> list (keyword, kategori), urutan menentukan prioritas."""
+    rules = []
+    try:
+        with open(RULES_FILE, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                keyword = (row.get("keyword") or "").strip().lower()
+                category = (row.get("category") or "").strip()
+                if keyword and category:
+                    rules.append((keyword, category))
+    except FileNotFoundError:
+        print(f"[warn] {RULES_FILE} tidak ditemukan, mode keyword akan pakai label default saja.")
+    return rules
+
+
+def categorize_by_keyword(extinf_line, rules, fallback_label):
+    """Tentukan kategori channel berdasarkan kata kunci di nama channel-nya."""
+    name = extinf_line.split(",")[-1].strip().lower() if "," in extinf_line else ""
+    for keyword, category in rules:
+        if keyword in name:
+            return category
+    return fallback_label
+
+
+def parse_and_retag(content, group_label, mode="single", rules=None):
+    """Parse 1 playlist m3u publik.
+    mode="single"  -> semua channel dipaksa masuk kategori group_label (perilaku lama).
+    mode="keyword" -> tiap channel dikategorikan otomatis berdasarkan kata kunci di
+                       namanya (lihat category_rules.csv); kalau tidak ada yang cocok,
+                       pakai group_label sebagai kategori cadangan.
     Mendukung baris tambahan (mis. #EXTVLCOPT, #KODIPROP) di antara #EXTINF dan
     URL stream-nya, bukan cuma format EXTINF-lalu-langsung-URL."""
     out_lines = []
@@ -45,10 +75,15 @@ def parse_and_retag(content, group_label):
     i = 0
     count = 0
     skipped = 0
+    rules = rules or []
     while i < n:
         line = lines[i].strip()
         if line.startswith("#EXTINF"):
-            block = [retag_group(lines[i], group_label)]
+            if mode == "keyword":
+                category = categorize_by_keyword(lines[i], rules, group_label)
+            else:
+                category = group_label
+            block = [retag_group(lines[i], category)]
             j = i + 1
             found_url = False
             while j < n:
@@ -80,7 +115,9 @@ def parse_and_retag(content, group_label):
 
 
 def load_sources():
-    """Baca sources.csv -> list (url, label_kategori)."""
+    """Baca sources.csv -> list (url, label_kategori, mode).
+    Kolom 'mode' opsional: kosong/'single' = kategori tunggal (default),
+    'keyword' = kategorikan tiap channel otomatis pakai category_rules.csv."""
     sources = []
     try:
         with open(SOURCES_FILE, newline="", encoding="utf-8") as f:
@@ -88,8 +125,9 @@ def load_sources():
             for row in reader:
                 label = (row.get("label") or "").strip()
                 url = (row.get("url") or "").strip()
+                mode = (row.get("mode") or "single").strip().lower() or "single"
                 if label and url:
-                    sources.append((url, label))
+                    sources.append((url, label, mode))
     except FileNotFoundError:
         print(f"[warn] {SOURCES_FILE} tidak ditemukan, dilewati.")
     return sources
@@ -186,11 +224,12 @@ def get_static_epg_header():
 def build_playlist():
     header = get_static_epg_header() or "#EXTM3U"
     all_lines = [header]
+    rules = load_category_rules()
 
-    for url, label in load_sources():
+    for url, label, mode in load_sources():
         content = fetch(url)
         if content:
-            all_lines.extend(parse_and_retag(content, label))
+            all_lines.extend(parse_and_retag(content, label, mode, rules))
 
     all_lines.extend(load_custom_channels())
     all_lines.extend(load_static_channels())
