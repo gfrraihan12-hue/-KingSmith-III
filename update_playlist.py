@@ -36,26 +36,46 @@ def retag_group(extinf_line, new_group):
 
 
 def parse_and_retag(content, group_label):
-    """Parse 1 playlist m3u publik, retag group-title sesuai label di sources.csv."""
+    """Parse 1 playlist m3u publik, retag group-title sesuai label di sources.csv.
+    Mendukung baris tambahan (mis. #EXTVLCOPT, #KODIPROP) di antara #EXTINF dan
+    URL stream-nya, bukan cuma format EXTINF-lalu-langsung-URL."""
     out_lines = []
     lines = content.splitlines()
+    n = len(lines)
     i = 0
     count = 0
-    while i < len(lines):
+    skipped = 0
+    while i < n:
         line = lines[i].strip()
         if line.startswith("#EXTINF"):
-            extinf = retag_group(line, group_label)
+            block = [retag_group(lines[i], group_label)]
             j = i + 1
-            while j < len(lines) and not lines[j].strip():
+            found_url = False
+            while j < n:
+                cur = lines[j].strip()
+                if cur.startswith("#EXTINF"):
+                    break  # entry sebelumnya tidak ada URL, berhenti di sini
+                if not cur:
+                    j += 1
+                    continue
+                block.append(lines[j])
+                if cur.startswith("http"):
+                    found_url = True
+                    j += 1
+                    break
                 j += 1
-            if j < len(lines) and lines[j].strip().startswith("http"):
-                out_lines.append(extinf)
-                out_lines.append(lines[j].strip())
+            if found_url:
+                out_lines.extend(block)
                 count += 1
-                i = j + 1
+                i = j
+                continue
+            else:
+                skipped += 1
+                i = j
                 continue
         i += 1
-    print(f"[info] {group_label}: {count} channel diambil dari sumber borongan.")
+    print(f"[info] {group_label}: {count} channel diambil dari sumber borongan "
+          f"({skipped} entri dilewati karena tidak ada URL).")
     return out_lines
 
 
@@ -161,8 +181,6 @@ def get_static_epg_header():
     if first_line.startswith("#EXTM3U") and "url-tvg=" in first_line:
         return first_line
     return None
-    print(f"[info] Channel static (paste manual): {count} channel dimuat dari {STATIC_FILE}.")
-    return out_lines
 
 
 def build_playlist():
