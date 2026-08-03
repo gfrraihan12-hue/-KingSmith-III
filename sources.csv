@@ -1,3 +1,3 @@
-label,url
-LIVE EVENTS,https://raw.githubusercontent.com/doms9/iptv/refs/heads/default/M3U8/events.m3u8
-TV Umum (doms9 base),https://s.id/d9Base
+label,url,mode
+LIVE EVENTS,https://raw.githubusercontent.com/doms9/iptv/refs/heads/default/M3U8/events.m3u8,single
+TV Umum (doms9 base),https://s.id/d9Base,keyword
